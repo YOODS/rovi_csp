@@ -1,0 +1,51 @@
+cropper:
+  cropR: 0
+  cropZ: 0
+  ladC: 0
+  ladW: 40000
+  mesh: 2
+  nfmin: 20
+  nfrad: 5
+picker:
+  azimuth:
+    max: 20
+    min: 0
+  fitness:
+    max: 1
+    min: 0.65
+  rmse:
+    max: 5
+    min: 0
+  rotation:
+    max: 30
+    min: -30
+rovi:
+  pshift_genpc:
+    calc:
+      bw_diff: 8
+      darkness: 5
+  ycam:
+    ExposureTimeLevel: 4
+    camera:
+      Gain: 80
+    projector:
+      Intensity: 255
+    hdr: 
+      enabled: true
+      pcgen_publish: false
+      projector:
+        Intensity: 0.2
+searcher:
+  cutter:
+    base: 0
+    distance: 500
+    offset: 0
+    width: 0
+  distance_threshold: 10
+  feature_mesh: 4
+  feature_radius: 18
+  icp_threshold: 3
+  normal_min_nn: 5
+  normal_radius: 8
+  repeat: 1
+

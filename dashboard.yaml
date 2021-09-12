@@ -1,0 +1,84 @@
+config:
+  dashboard:
+    load: rovi_visual_teach/rc.d/motoman_J6.yaml
+    recipe:
+      link: rovi_csp/recipe
+      dir: rovi_csp/recipe.d
+    altitude: '+0'
+    message:
+      halt: "を停止します"
+    font:
+      size: 10
+    color:
+      background: "#00AAFF"
+      lit: "#FF7700"
+      unlit: "#888888"
+      mask: "#222222"
+    launch_vga:
+      label: "VGAカメラ"
+      package: rovi
+      confirm: True
+      auto: 1
+    launch_sxga:
+      label: "SXGAカメラ"
+      package: rovi
+      confirm: True
+    launch_rsock:
+      label: "ロボット"
+      package: rovi_industrial
+      confirm: True
+      auto: 6
+      args:
+        address: "111.222.333.444"
+    launch_vt:
+      label: "VT"
+      package: rovi_csp
+      file: vt.launch
+      auto: 8
+    launch_rcalib:
+      label: "キャリブ"
+      package: rovi_utils
+      file: rcalib.launch
+      pre: "wmctrl -r rviz -e 0,0,0,1557,920"
+      post: "wmctrl -r rviz -e 0,0,0,1920,920"
+      args:
+        result: rovi_csp/rcalib.yaml
+    launch_setup:
+      label: "セットアップ"
+      package: rovi_csp
+      file: setup.launch
+      pre: "wmctrl -r rviz -e 0,0,0,1557,920"
+      post: "wmctrl -r rviz -e 0,0,0,1920,920"
+    launch_viewer:
+      label: "Viewer"
+      package: rovi_csp
+      file: viewer.launch
+      confirm: True
+      auto: 10
+
+    indicator1:
+      label: "YCAM"
+      topic: /rovi/stat
+      type: std_msgs/Bool
+      timeout: 2
+    indicator2:
+      label: "接続"
+      topic: /rsocket/enable
+      type: std_msgs/Bool
+      timeout: 2
+    indicator3:
+      label: "通信"
+      topic: /rsocket/stat
+      type: std_msgs/Bool
+      timeout: 2
+    indicator4:
+      label: "解析"
+      topic: /searcher/stat
+      type: std_msgs/Bool
+      timeout: 2
+
+  panel:
+    color:
+      background: "#00AAFF"
+    lift: false
+

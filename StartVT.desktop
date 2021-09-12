@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=VT起動
+Comment=VTを起動します
+Exec=/home/ros/catkin_ws/src/rovi/launch/rovirun.sh roslaunch rovi_csp start.launch
+Icon=/home/ros/catkin_ws/src/rovi_visual_teach/img/VTMan.png
+Path=
+Terminal=true
+StartupNotify=false

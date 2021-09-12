@@ -1,0 +1,52 @@
+<launch>
+  <rosparam command="load" file="$(find rovi_csp)/recipe/param.yaml" />
+  <rosparam command="load" file="$(find rovi_csp)/rcalib.yaml" />
+
+  <node pkg="rovi_utils" type="config_tf.py" name="config_tf" />
+
+  <node pkg="rovi_utils" type="cropper.py" name="surface_cropper" output="screen">
+    <remap from="~config" to="/config/cropper" />
+    <remap from="~param" to="/cropper" />
+    <remap from="~update" to="/update/cropper" />
+    <remap from="~capture" to="/request/capture" />
+    <remap from="~captured" to="/response/capture" />
+    <remap from="~clear" to="/request/clear" />
+    <remap from="~redraw" to="/request/redraw" />
+    <remap from="~in/floats" to="/rovi/ps_floats" />
+    <remap from="~out/floats" to="/surface/cropped/floats" />
+    <remap from="~raw/floats" to="/scene/surface/raw/floats" />
+  </node>
+  <node pkg="rovi_csp" type="prepro.py" name="" output="screen">
+    <remap from="~config" to="/config/prepro" />
+    <remap from="~param" to="/prepro" />
+    <remap from="~in/floats" to="/surface/cropped/floats" />
+    <remap from="~out/floats" to="/scene/surface/floats" />
+    <remap from="~passthru" to="/prepro/pass" />
+    <remap from="~shortcut" to="/response/solve" />
+  </node>
+  <node pkg="rovi_utils" type="searcher.py" name="searcher0" args="path:=$(find rovi_csp)/recipe" output="screen">
+    <remap from="~config" to="/config/searcher0" />
+    <remap from="~param" to="/searcher" />
+    <remap from="~in/surface/floats" to="/scene/surface/floats" />
+    <remap from="~master/surface/floats" to="/master/surface/floats" />
+    <remap from="~clear" to="/request/clear" />
+    <remap from="~load" to="/request/model_load" />
+    <remap from="~loaded" to="/response/recipe_load" />
+    <remap from="~save" to="/request/model_save" />
+    <remap from="~saved" to="/response/model_save" />
+    <remap from="~solve" to="/prepro/pass" />
+    <remap from="~solved" to="/searcher/solved" />
+    <remap from="~redraw" to="/request/redraw" />
+    <remap from="~score" to="/searcher/score" />
+    <remap from="~stat" to="/searcher/stat" />
+  </node>
+  <node pkg="rovi_utils" type="picker.py" name="" output="screen">
+    <remap from="~config" to="/config/picker" />
+    <remap from="~param" to="/picker" />
+    <remap from="~clear" to="/request/clear" />
+    <remap from="~solve" to="/searcher/solved" />
+    <remap from="~score" to="/searcher/score" />
+    <remap from="~solved" to="/response/solve" />
+    <remap from="~redraw" to="/request/redraw" />
+  </node>
+</launch>

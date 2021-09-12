@@ -1,0 +1,35 @@
+<launch>
+  <!--   PointColuds to show on RViz   -->
+  <node pkg="rviz" type="rviz" name="" args="-d $(find rovi_csp)/main.rviz" />
+  <node pkg="rovi" type="floats2pc" name="" args="camera/capture0">
+    <remap from="floats" to="/scene/surface/floats" />
+    <remap from="pc" to="/scene/surface/pc" />
+  </node>
+  <node pkg="rovi_utils" type="image_hcat.py" name="" output="screen">
+    <remap from="~image_main" to="/rovi/left/image_rect" />
+    <remap from="~image_sub" to="/rovi/right/image_rect" />
+    <remap from="~image_out" to="/rovi/image_lr" />
+    <remap from="~Q" to="/rovi/genpc/Q" />
+    <remap from="~K" to="/rovi/left/remap/Kn" />
+  </node>
+  <node pkg="rovi_utils" type="image_hack.py" name="">
+    <remap from="~image_in1" to="/rovi/image_lr" />
+    <remap from="~image_in2" to="/gridboard/image_out" />
+    <remap from="~image_out" to="/rovi/left/image_rect_mix" />
+  </node>
+  <node pkg="rovi" type="floats2pc" name="" args="camera/master0">
+    <remap from="floats" to="/master/surface/floats" />
+    <remap from="pc" to="/master/surface/pc" />
+  </node>
+  <node pkg="rovi" type="floats2pc" name="" args="camera/capture0/solve0">
+    <remap from="floats" to="/master/surface/floats" />
+    <remap from="pc" to="/master/surface/pc0" />
+  </node>
+  <node pkg="rtk_tools" type="report.py" name="" output="screen">
+    <remap from="/report/update" to="/request/capture" />
+    <remap from="/report/complete" to="/response/solve" />
+  </node>
+  <node pkg="rviz_tools_py" type="cutter.py" name="" output="screen">
+    <param name="/cutter/refs" type="str" value="/searcher/cutter" />
+  </node>
+</launch>

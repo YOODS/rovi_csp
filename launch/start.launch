@@ -1,0 +1,11 @@
+<launch>
+  <arg name="mount" default="hand" />
+  <rosparam command="load" file="$(find rovi_csp)/dashboard.yaml" />
+  <rosparam command="load" file="$(find rovi_visual_teach)/conf.d/config.yaml" />
+  <rosparam command="load" file="$(find rovi_visual_teach)/conf.d/$(arg mount)_eye.yaml" />
+  <node pkg="rtk_tools" type="dashboard.py" required="true" name="" args="load:=rovi_csp/dashboard.yaml" output="screen">
+    <remap from="~load" to="/request/recipe_load" />
+    <remap from="~loaded" to="/request/model_load" />
+    <remap from="~failed" to="/response/recipe_load" />
+  </node>
+</launch>
