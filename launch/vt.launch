@@ -1,6 +1,7 @@
 <launch>
-  <rosparam command="load" file="$(find rovi_csp)/recipe/param.yaml" />
-  <rosparam command="load" file="$(find rovi_csp)/rcalib.yaml" />
+  <arg name="ws" default="$(find rovi_csp)" />
+  <rosparam command="load" file="$(arg ws)/recipe/param.yaml" />
+  <rosparam command="load" file="$(arg ws)/rcalib.yaml" />
 
   <node pkg="rovi_utils" type="config_tf.py" name="config_tf" />
 

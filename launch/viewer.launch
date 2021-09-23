@@ -1,6 +1,7 @@
 <launch>
   <!--   PointColuds to show on RViz   -->
-  <node pkg="rviz" type="rviz" name="" args="-d $(find rovi_csp)/main.rviz" />
+  <arg name="rviz_conf" default="$(find rovi_csp)/main.rviz" />
+  <node pkg="rviz" type="rviz" name="" args="-d $(arg rviz_conf)" />
   <node pkg="rovi" type="floats2pc" name="" args="camera/capture0">
     <remap from="floats" to="/scene/surface/floats" />
     <remap from="pc" to="/scene/surface/pc" />
@@ -32,4 +33,5 @@
   <node pkg="rviz_tools_py" type="cutter.py" name="" output="screen">
     <param name="/cutter/refs" type="str" value="/searcher/cutter" />
   </node>
+  <node pkg="rovi_csp" type="csp30.py" name="" />
 </launch>
