@@ -25,7 +25,7 @@
     <remap from="~passthru" to="/prepro/pass" />
     <remap from="~shortcut" to="/response/solve" />
   </node>
-  <node pkg="rovi_utils" type="searcher.py" name="searcher0" args="path:=$(find rovi_csp)/recipe" output="screen">
+  <node pkg="rovi_utils" type="searcher.py" name="searcher0" args="path:=$(arg ws)/recipe" output="screen">
     <remap from="~config" to="/config/searcher0" />
     <remap from="~param" to="/searcher" />
     <remap from="~in/surface/floats" to="/scene/surface/floats" />
