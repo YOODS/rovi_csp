@@ -17,19 +17,14 @@ config:
     launch_vga:
       label: "VGAカメラ"
       package: rovi
-      confirm: True
       auto: 1
     launch_sxga:
       label: "SXGAカメラ"
       package: rovi
-      confirm: True
     launch_rsock:
       label: "ロボット"
       package: rovi_industrial
-      confirm: True
       auto: 6
-      args:
-        address: "111.222.333.444"
     launch_vt:
       label: "VT"
       package: rovi_csp
@@ -53,7 +48,6 @@ config:
       label: "Viewer"
       package: rovi_csp
       file: viewer.launch
-      confirm: True
       auto: 10
 
     indicator1:

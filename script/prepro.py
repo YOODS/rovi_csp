@@ -56,8 +56,15 @@ def cb_solve(msg):
     print("get_param exception:",e.args)
   if len(Scene)>10000:
     cb_redraw(0)
+    report=String()
+    report.data='{"volume":(10000,0)}'
+    pub_str.publish(report)
     rospy.Timer(rospy.Duration(0.1),lambda ev: pub_thru.publish(mTrue),oneshot=True)
   else:
+    report=String()
+    report=String()
+    report.data='{"volume":(10,201)}'
+    pub_str.publish(report)
     pub_cut.publish(mFalse)
 
 ########################################################
