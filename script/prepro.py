@@ -17,12 +17,14 @@ from geometry_msgs.msg import Transform
 from rovi_utils import tflib
 
 Param={
+  "box0_width":50,
+  "box0_depth":30,
+  "box0_points":1000,
 }
 Config={
-  "source_frame_id":"user1",
-  "target_frame_id":"camera",
-  "master_frame_id":"camera/master0",
-  "solve_frame_id":"camera/capture0/solve0"
+  "user_frame_id":"bucket",
+  "bound0_frame_ids":["bucket_edge0","bucket_edge1"],
+  "bound1_frame_ids":["bucket_edge2","bucket_edge3"]
 }
 
 def cb_redraw(msg):
@@ -42,6 +44,39 @@ def getRT(base,ref):
     RT=None
   return RT
 
+def pTr(RT,pc):
+  return np.dot(RT[:3],np.vstack((pc.T,np.ones((1,len(pc)))))).T
+
+def pCountYZ(pc,y0,y1,dy,z0,z1,dz):
+  pitch=5
+  count=0
+  for y in np.arange(y0,y1,pitch):
+    pcy=pc[ np.ravel(np.abs(pc[:,1]-y)<dy) ]
+    for z in np.arange(z0,z1,pitch):
+      n=len(pcy[ np.ravel(np.abs(pcy[:,2]-z)<dz) ])
+      if count<n: count=n
+  return count
+
+def pCrop(ids,pc,wid,dep):
+  bnd0=getRT(Config["user_frame_id"],ids[0])
+  bnd1=getRT(Config["user_frame_id"],ids[1])
+  xm=(bnd0[0,3]+bnd1[0,3])/2 #x center of bounding box
+  xh=np.abs(bnd0[0,3]-xm)    #x width of bounding box
+  ym=(bnd0[1,3]+bnd1[1,3])/2
+  yh=np.abs(bnd0[1,3]-ym)
+  print("prepro crop",ym,yh)
+  pc=pc[ np.ravel( np.abs(pc[:,0]-xm)<xh ) & np.ravel( np.abs(pc[:,1]-ym)<yh ) ]
+  cn=pCountYZ(pc,ym-yh,ym+yh,wid/2,0,1000,dep/2)
+  return pc,cn
+
+def pCropX(ids,pc):
+  bnd0=getRT(Config["user_frame_id"],ids[0])
+  bnd1=getRT(Config["user_frame_id"],ids[1])
+  xm=(bnd0[0,3]+bnd1[0,3])/2 #x center of bounding box
+  xh=np.abs(bnd0[0,3]-xm)    #x width of bounding box
+  pc=pc[ np.ravel( np.abs(pc[:,0]-xm)<xh ) ]
+  return pc
+
 def cb_ps(msg):
   global Scene
   Scene=np.reshape(msg.data,(-1,3))
@@ -51,21 +86,35 @@ def cb_ps(msg):
 def cb_solve(msg):
   global Scene
   try:
-    Param.update(rospy.get_param("-param"))
+    Param.update(rospy.get_param("/prepro"))
   except Exception as e:
     print("get_param exception:",e.args)
-  if len(Scene)>10000:
-    cb_redraw(0)
-    report=String()
-    report.data='{"volume":(10000,0)}'
-    pub_str.publish(report)
-    rospy.Timer(rospy.Duration(0.1),lambda ev: pub_thru.publish(mTrue),oneshot=True)
+  print("prepro param",Param)
+  report=String()
+  cTu=getRT("camera/capture0",Config["user_frame_id"])
+  uTc=np.linalg.inv(cTu)
+  uscn=pTr(uTc,Scene)
+  print("Scene",len(Scene))
+  if Param["crop_edge"]:
+    uscn0,cnt0=pCrop(Config["bound0_frame_ids"],uscn,Param["box0_width"],Param["box0_depth"])
+    print("count0",len(uscn0),cnt0)
+    uscn1,_=pCrop(Config["bound1_frame_ids"],uscn,0,0)
+    Scene=pTr(cTu,np.vstack((uscn0,uscn1)))
+    if cnt0>Param["box0_points"]:
+      report.data='{"volume":('+str(cnt0)+',0)}'
+      rospy.Timer(rospy.Duration(0.1),lambda ev: pub_thru.publish(mTrue),oneshot=True)
+    else:
+      report.data='{"volume":('+str(cnt0)+',201)}'
+      rospy.Timer(rospy.Duration(0.1),lambda ev: pub_cut.publish(mFalse),oneshot=True)
   else:
-    report=String()
-    report=String()
-    report.data='{"volume":(10,201)}'
-    pub_str.publish(report)
-    pub_cut.publish(mFalse)
+    uscn0=pCropX(Config["bound0_frame_ids"],uscn)
+    uscn1=pCropX(Config["bound1_frame_ids"],uscn)
+    Scene=pTr(cTu,np.vstack((uscn0,uscn1)))
+    report.data='{"volume":('+str(len(Scene))+',0)}'
+    rospy.Timer(rospy.Duration(0.1),lambda ev: pub_thru.publish(mTrue),oneshot=True)
+  print("Scene",len(Scene))
+  cb_redraw(0)
+  pub_str.publish(report)
 
 ########################################################
 rospy.init_node("prepro",anonymous=True)

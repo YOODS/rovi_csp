@@ -20,7 +20,7 @@ config_tf:
         y: 0
         z: 0
       translation:
-        x: 0
+        x: 500
         y: -400
         z: 0
   bucket_edge1:
@@ -33,7 +33,32 @@ config_tf:
         y: 0
         z: 0
       translation:
+        x: 200
+        y: 400
+        z: 0
+  bucket_edge2:
+    parent_frame_id: bucket
+    transform:
+      rotation:
+        w: 1
         x: 0
+        y: 0
+        z: 0
+      translation:
+        x: -200
+        y: -400
+        z: 0
+  bucket_edge3:
+    parent_frame_id: bucket
+    transform:
+      translation:
+      rotation:
+        w: 1
+        x: 0
+        y: 0
+        z: 0
+      translation:
+        x: -500
         y: 400
         z: 0
 prepro:
