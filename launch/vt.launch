@@ -17,7 +17,7 @@
     <remap from="~out/floats" to="/surface/cropped/floats" />
     <remap from="~raw/floats" to="/scene/surface/raw/floats" />
   </node>
-  <node pkg="rovi_csp" type="prepro.py" name="" output="screen">
+  <node pkg="rovi_csp" type="prepro2.py" name="" output="screen">
     <remap from="~config" to="/config/prepro" />
     <remap from="~param" to="/prepro" />
     <remap from="~in/floats" to="/surface/cropped/floats" />

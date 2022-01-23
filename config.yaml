@@ -1,5 +1,5 @@
 config_tf:
-  bucket:
+  bucket_post0:
     parent_frame_id: world
     transform:
       rotation:
@@ -8,23 +8,11 @@ config_tf:
         y: 0
         z: 0
       translation:
-        x: 0
-        y: -25
-        z: 0
-  bucket_edge0:
-    parent_frame_id: bucket
-    transform:
-      rotation:
-        w: 1
-        x: 0
-        y: 0
-        z: 0
-      translation:
-        x: 500
-        y: -400
-        z: 0
-  bucket_edge1:
-    parent_frame_id: bucket
+        x: 220
+        y: -480
+        z: 800
+  bucket_post1:
+    parent_frame_id: world
     transform:
       translation:
       rotation:
@@ -33,36 +21,9 @@ config_tf:
         y: 0
         z: 0
       translation:
-        x: 200
-        y: 400
-        z: 0
-  bucket_edge2:
-    parent_frame_id: bucket
-    transform:
-      rotation:
-        w: 1
-        x: 0
-        y: 0
-        z: 0
-      translation:
-        x: -200
-        y: -400
-        z: 0
-  bucket_edge3:
-    parent_frame_id: bucket
-    transform:
-      translation:
-      rotation:
-        w: 1
-        x: 0
-        y: 0
-        z: 0
-      translation:
-        x: -500
-        y: 400
-        z: 0
-prepro:
-  crop_edge: True
+        x: 220
+        y: 450
+        z: 800
 
 config:
   report:
