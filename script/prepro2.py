@@ -21,7 +21,8 @@ Param={
   "box0_width":60,
   "box0_depth":40,
   "box0_points":700,
-  "box0_crop":200
+  "box0_crop":200,
+  "post_margin":100
 }
 Config={
   "axis_frame_ids":["bucket_post0","bucket_post1"]
@@ -47,7 +48,8 @@ def getRT(base,ref):
 def pFrame(P0,Px):
   RT=np.eye(4)
   ex=Px-P0
-  ex=ex/np.linalg.norm(ex)
+  xlen=np.linalg.norm(ex)
+  ex=ex/xlen
   ez=np.array([0,0,1])
   ey=np.cross(ez,ex)
   RT[0,0:3]=ex
@@ -61,7 +63,7 @@ def pFrame(P0,Px):
   tfs.child_frame_id="prepro"
   tfs.transform=tflib.fromRT(RT)
   broadcaster.sendTransform([tfs])
-  return RT
+  return RT,xlen
 
 def pTr(RT,pc):
   return np.dot(RT[:3],np.vstack((pc.T,np.ones((1,len(pc)))))).T
@@ -119,10 +121,9 @@ def cb_solve(msg):
   except Exception as e:
     print("get_param exception:",e.args)
   print("prepro param",Param)
-  report=String()
   P0=getRT("world",Config["axis_frame_ids"][0])[0:3,3].ravel()
   Px=getRT("world",Config["axis_frame_ids"][1])[0:3,3].ravel()
-  wTu=pFrame(P0,Px)
+  wTu,xlen=pFrame(P0,Px)
   print("Bucket",wTu)
   wTc=getRT("world","camera/capture0")
   uTc=np.linalg.inv(wTu).dot(wTc)
@@ -132,21 +133,28 @@ def cb_solve(msg):
   lx=np.linalg.norm(Px-P0)
   uscn0,cnt0,cx0=pScanX(uscn,lx,Param["box0_width"],Param["box0_depth"],Param["box0_points"])  #Scan PC peak of F-end of workpiece
   print("count0",len(uscn0),cnt0,cx0)
+  report={}
   if cnt0 is not None:
     if cnt0>Param["box0_points"]:
-      report.data='{"volume":('+str(cnt0)+',0)}'
+      report["volume"]=(cnt0,0)
+      Pc=np.ravel(uTc[0:3,3])
+      margin=-cx0 if cx0<Pc[0] else xlen-cx0
+      report["margin"]=(margin,int(np.abs(margin)<Param["post_margin"]))
+      print("margin",report["margin"])
       uscn1=uscn[ np.ravel(np.abs(uscn[:,0]-cx0)<Param["box0_crop"]/2) ]
       Scene=pTr(cTu,uscn1)
       cb_redraw(0)
       rospy.Timer(rospy.Duration(0.1),lambda ev: pub_thru.publish(mTrue),oneshot=True)
     else:
-      report.data='{"volume":('+str(cnt0)+',201)}'
+      report["volume"]=(cnt0,802)
       rospy.Timer(rospy.Duration(0.1),lambda ev: pub_cut.publish(mFalse),oneshot=True)
   else:
-    report.data='{"volume":(0,201)}'
+    report["volume"]=(0,801)
     rospy.Timer(rospy.Duration(0.1),lambda ev: pub_cut.publish(mFalse),oneshot=True)
   print("Scene",len(Scene))
-  pub_str.publish(report)
+  msg=String()
+  msg.data=str(report)
+  pub_str.publish(msg)
 
 ########################################################
 rospy.init_node("prepro",anonymous=True)

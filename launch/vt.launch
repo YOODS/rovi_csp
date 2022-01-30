@@ -47,7 +47,13 @@
     <remap from="~clear" to="/request/clear" />
     <remap from="~solve" to="/searcher/solved" />
     <remap from="~score" to="/searcher/score" />
-    <remap from="~solved" to="/response/solve" />
+    <remap from="~solved" to="/revolver/do" />
     <remap from="~redraw" to="/request/redraw" />
+  </node>
+  <node pkg="rovi_csp" type="revolve.py" name="" output="screen">
+    <remap from="~config" to="/config/revolver" />
+    <remap from="~param" to="/revolver" />
+    <remap from="~do" to="/revolver/do" />
+    <remap from="~done" to="/response/solve" />
   </node>
 </launch>

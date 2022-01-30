@@ -22,11 +22,11 @@ config_tf:
         z: 0
       translation:
         x: 220
-        y: 450
+        y: 420
         z: 800
 
 config:
   report:
-    keys: ["__recipe__", "pcount","volume","fitness","rmse","azimuth","rotation","Gx","Gy","Gz","Vx","Vy","Vz","tcap","tfeat","tmatch"]
-    labels: ["レシピ", "点数","体積","一致度","平均誤差","傾き[deg]","回転[deg]","X移動[mm]","Y移動[mm]","Z移動[mm]","X回転[deg]","Y回転[deg]","Z回転[deg]","撮影処理時間[sec]","特徴処理時間[sec]","マッチング処理時間[sec]"]
+    keys: ["__recipe__", "pcount","volume","margin","fitness","rmse","azimuth","rotation","Gx","Gy","Gz","Vx","Vy","Vz","tcap","tfeat","tmatch"]
+    labels: ["レシピ", "点数","体積","すきま","一致度","平均誤差","傾き[deg]","回転[deg]","X移動[mm]","Y移動[mm]","Z移動[mm]","X回転[deg]","Y回転[deg]","Z回転[deg]","撮影[s]","特徴点[s]","マッチ[s]"]
 

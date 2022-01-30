@@ -10,7 +10,6 @@ from std_msgs.msg import Bool
 from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
 from rovi_utils import tflib
-from rovi_utils.srv import TextFilter,TextFilterRequest,TextFilterResponse
 from scipy.spatial.transform import Rotation as R
 
 def lookup(a,b):
@@ -24,8 +23,10 @@ def lookup(a,b):
     return None
   return aTb
 
-def cb_update(req):
-  res=TextFilterResponse()
+def cb_do(msg):
+  if msg.data is False:
+    pub_done.publish(mFalse)
+    return
   stj=lookup("camera/master0","camera/master0/journal")
   stj.header.frame_id="camera/capture0/solve0"
   stj.child_frame_id="camera/capture0/solve0/journal"
@@ -62,17 +63,31 @@ def cb_update(req):
   jtr.header.stamp=rospy.Time.now()
   jtr.transform=tflib.fromRT(jTr)
   broadcaster.sendTransform([stj,jtr])
-  return res
+  rospy.Timer(rospy.Duration(0.1),lambda event: pub_done.publish(mTrue),oneshot=True)
 
 ########################################################
-rospy.init_node('revolver',anonymous=True)
+rospy.init_node("revolver",anonymous=True)
+#Config.update(parse_argv(sys.argv))
+#try:
+#  Config.update(rospy.get_param("~config"))
+#except Exception as e:
+#  print("get_param exception:",e.args)
+#try:
+#  Param.update(rospy.get_param("~param"))
+#except Exception as e:
+
+###Topics Service
+rospy.Subscriber("~do",Bool,cb_do)
+pub_done=rospy.Publisher("~done",Bool,queue_size=1)
+
+###Globals
+mTrue=Bool();mTrue.data=True
+mFalse=Bool();mFalse.data=False
 tfBuffer=tf2_ros.Buffer()
 listener=tf2_ros.TransformListener(tfBuffer)
 broadcaster=tf2_ros.StaticTransformBroadcaster()
-rospy.sleep(0.5)
-sys.stdout.write("//Start revolve.py\n")
-sys.stdout.flush()
 
-s=rospy.Service('/post/query', TextFilter, cb_update)
-rospy.spin()
-
+try:
+  rospy.spin()
+except KeyboardInterrupt:
+  print("Shutting down")
