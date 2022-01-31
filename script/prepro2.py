@@ -20,7 +20,7 @@ from rovi_utils import tflib
 Param={
   "box0_width":60,
   "box0_depth":40,
-  "box0_points":700,
+  "box0_points":500,
   "box0_crop":200,
   "post_margin":100
 }
