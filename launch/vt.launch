@@ -10,7 +10,7 @@
     <remap from="~param" to="/cropper" />
     <remap from="~update" to="/update/cropper" />
     <remap from="~capture" to="/request/capture" />
-    <remap from="~captured" to="/response/capture" />
+    <remap from="~captured" to="/prepro/do1" />
     <remap from="~clear" to="/request/clear" />
     <remap from="~redraw" to="/request/redraw" />
     <remap from="~in/floats" to="/rovi/ps_floats" />
@@ -22,8 +22,10 @@
     <remap from="~param" to="/prepro" />
     <remap from="~in/floats" to="/surface/cropped/floats" />
     <remap from="~out/floats" to="/scene/surface/floats" />
-    <remap from="~passthru" to="/prepro/pass" />
-    <remap from="~shortcut" to="/response/solve" />
+    <remap from="~do1" to="/prepro/do1" />
+    <remap from="~do2" to="/request/solve" />
+    <remap from="~done1" to="/response/capture" />
+    <remap from="~done2" to="/searcher/solve" />
   </node>
   <node pkg="rovi_utils" type="searcher.py" name="searcher0" args="path:=$(arg ws)/recipe" output="screen">
     <remap from="~config" to="/config/searcher0" />
@@ -35,7 +37,7 @@
     <remap from="~loaded" to="/response/recipe_load" />
     <remap from="~save" to="/request/model_save" />
     <remap from="~saved" to="/response/model_save" />
-    <remap from="~solve" to="/prepro/pass" />
+    <remap from="~solve" to="/searcher/solve" />
     <remap from="~solved" to="/searcher/solved" />
     <remap from="~redraw" to="/request/redraw" />
     <remap from="~score" to="/searcher/score" />

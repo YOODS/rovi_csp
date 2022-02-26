@@ -14,7 +14,6 @@ config_tf:
   bucket_post1:
     parent_frame_id: world
     transform:
-      translation:
       rotation:
         w: 1
         x: 0
@@ -26,7 +25,10 @@ config_tf:
         z: 800
 
 config:
+  rsocket:
+    target_frame_id: camera/capture0/solve0/revolve
+    x1keys: ['probables','margin']
   report:
-    keys: ["__recipe__", "pcount","volume","margin","fitness","rmse","azimuth","rotation","Gx","Gy","Gz","Vx","Vy","Vz","tcap","tfeat","tmatch"]
-    labels: ["レシピ", "点数","体積","すきま","一致度","平均誤差","傾き[deg]","回転[deg]","X移動[mm]","Y移動[mm]","Z移動[mm]","X回転[deg]","Y回転[deg]","Z回転[deg]","撮影[s]","特徴点[s]","マッチ[s]"]
+    keys: ["__recipe__", "pcount","probables","volume","margin","fitness","rmse","azimuth","rotation","Gx","Gy","Gz","Vx","Vy","Vz","tcap","tfeat","tmatch"]
+    labels: ["レシピ", "点数","候補","体積","すきま","一致度","平均誤差","傾き[deg]","回転[deg]","X移動[mm]","Y移動[mm]","Z移動[mm]","X回転[deg]","Y回転[deg]","Z回転[deg]","撮影[s]","特徴点[s]","マッチ[s]"]
 

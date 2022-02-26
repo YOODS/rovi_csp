@@ -18,9 +18,11 @@ from geometry_msgs.msg import TransformStamped
 from rovi_utils import tflib
 
 Param={
+  "enable":0,
   "box0_width":60,
   "box0_depth":40,
   "box0_points":500,
+  "box0_low":100,
   "box0_crop":200,
   "post_margin":100
 }
@@ -28,8 +30,7 @@ Config={
   "axis_frame_ids":["bucket_post0","bucket_post1"]
 }
 
-def cb_redraw(msg):
-  pub_ps.publish(np2F(Scene))
+do1cema=0
 
 def np2F(d):  #numpy to Floats
   f=Floats()
@@ -70,19 +71,25 @@ def pTr(RT,pc):
 
 def pCollectPeakX(pc,hx,dx,hz,dz):
   pitch = 5
-  dmax=0
   cnt=[]
   cod=[]
+  cpre=0
+  inc=True
   for x in np.arange(0,hx,pitch):
     pc1=pc[ np.ravel(np.abs(pc[:,0]-x)<dx) ]
     cmax=0
     for z in np.arange(0,hz,pitch):
       n=len(pc1[ np.ravel(np.abs(pc1[:,2]-z)<dz) ])
       if cmax<n: cmax=n
-    if dmax>cmax:
-      cnt.append(dmax)
-      cod.append(x-pitch)
-    dmax=cmax
+    if inc:
+      if cpre>cmax:
+        if cpre>Param["box0_low"]:
+          cnt.append(cpre)
+          cod.append(x-pitch)
+        inc=False
+    else:
+      if cpre<cmax: inc=True
+    cpre=cmax
   return cnt,cod
 
 def pScanX(pc,h,wid,dep,thres):
@@ -97,30 +104,38 @@ def pScanX(pc,h,wid,dep,thres):
       cnt=cnt[sel]
       coord=coord[sel]
       n=np.argmin(np.abs(coord-h/2))
-      return pc,cnt[n],coord[n]
+      return sum(sel),pc,cnt[n],coord[n]
     else:
       n=np.argmax(cnt)
-      return pc,cnt[n],coord[n]
+      return 0,pc,cnt[n],coord[n]
   else:
-    return pc,None,None
+    return 0,pc,0,0
 
 def pCropY(pc,y0,yh):
   cy=RT[1,3]/2
 
-
 def cb_ps(msg):
-  global Scene
+  global Scene,SceneP,do1cema
   Scene=np.reshape(msg.data,(-1,3))
+  SceneP=Scene
   pub_ps.publish(np2F(Scene))
-  return
-
-def cb_solve(msg):
-  global Scene
   try:
     Param.update(rospy.get_param("/prepro"))
   except Exception as e:
     print("get_param exception:",e.args)
-  print("prepro param",Param)
+  print("prepro::cb_ps",Param)
+  report={}
+  if Param["enable"]==0:
+    report['probables']=1
+    report['volume']=0
+    report['margin']=100
+    msg=String()
+    msg.data=str(report)
+    pub_str.publish(msg)
+    if do1cema>0:
+      do1cema=0
+      rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done1.publish(mTrue),oneshot=True)
+    return
   P0=getRT("world",Config["axis_frame_ids"][0])[0:3,3].ravel()
   Px=getRT("world",Config["axis_frame_ids"][1])[0:3,3].ravel()
   wTu,xlen=pFrame(P0,Px)
@@ -131,30 +146,41 @@ def cb_solve(msg):
   print("Scene",len(Scene))
   uscn=pTr(uTc,Scene)
   lx=np.linalg.norm(Px-P0)
-  uscn0,cnt0,cx0=pScanX(uscn,lx,Param["box0_width"],Param["box0_depth"],Param["box0_points"])  #Scan PC peak of F-end of workpiece
-  print("count0",len(uscn0),cnt0,cx0)
-  report={}
-  if cnt0 is not None:
-    if cnt0>Param["box0_points"]:
-      report["volume"]=(cnt0,0)
-      Pc=np.ravel(uTc[0:3,3])
-      margin=-cx0 if cx0<Pc[0] else xlen-cx0
-      report["margin"]=(margin,int(np.abs(margin)<Param["post_margin"]))
-      print("margin",report["margin"])
-      uscn1=uscn[ np.ravel(np.abs(uscn[:,0]-cx0)<Param["box0_crop"]/2) ]
-      Scene=pTr(cTu,uscn1)
-      cb_redraw(0)
-      rospy.Timer(rospy.Duration(0.1),lambda ev: pub_thru.publish(mTrue),oneshot=True)
-    else:
-      report["volume"]=(cnt0,802)
-      rospy.Timer(rospy.Duration(0.1),lambda ev: pub_cut.publish(mFalse),oneshot=True)
+  pbn,uscn0,cnt0,cx0=pScanX(uscn,lx,Param["box0_width"],Param["box0_depth"],Param["box0_points"])  #Scan PC peak of F-end of workpiece
+  print("prepro",pbn,len(uscn0),cnt0,cx0)
+  report["probables"]=pbn
+  if pbn>0: #probable point clusters
+    report["volume"]=cnt0
+    Pc=np.ravel(uTc[0:3,3])
+    margin=cx0 if cx0<xlen/2 else xlen-cx0
+    report["margin"]=margin
+    print("margin",report["margin"])
+    uscn1=uscn[ np.ravel(np.abs(uscn[:,0]-cx0)<Param["box0_crop"]/2) ]
+    SceneP=pTr(cTu,uscn1)
+    print("Scene prepro",len(SceneP))
   else:
-    report["volume"]=(0,801)
-    rospy.Timer(rospy.Duration(0.1),lambda ev: pub_cut.publish(mFalse),oneshot=True)
-  print("Scene",len(Scene))
+    SceneP=None
+  if do1cema>0:
+    do1cema=0
+    rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done1.publish(mTrue),oneshot=True)
   msg=String()
   msg.data=str(report)
   pub_str.publish(msg)
+
+
+def cb_do1(msg):
+  global do1cema
+  do1cema=do1cema+1
+
+def cb_do2(msg):
+  global SceneP
+  if Param["enable"]==0:
+    pub_ps.publish(np2F(Scene))
+    rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done2.publish(mTrue),oneshot=True)
+    return
+  if SceneP is not None:
+    pub_ps.publish(np2F(SceneP))
+  rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done2.publish(mTrue),oneshot=True)
 
 ########################################################
 rospy.init_node("prepro",anonymous=True)
@@ -166,12 +192,12 @@ except Exception as e:
   print("get_param exception:",e.args)
 ###Topics
 rospy.Subscriber("~in/floats",numpy_msg(Floats),cb_ps)
-rospy.Subscriber("/request/solve",Bool,cb_solve)
-rospy.Subscriber("/request/redraw",Bool,cb_redraw)
+rospy.Subscriber("~do1",Bool,cb_do1)  #search cluster
+rospy.Subscriber("~do2",Bool,cb_do2)  #crop
 pub_ps=rospy.Publisher("~out/floats",numpy_msg(Floats),queue_size=1)
 pub_str=rospy.Publisher("/report",String,queue_size=1)
-pub_thru=rospy.Publisher("~passthru",Bool,queue_size=1)
-pub_cut=rospy.Publisher("~shortcut",Bool,queue_size=1)
+pub_done1=rospy.Publisher("~done1",Bool,queue_size=1)
+pub_done2=rospy.Publisher("~done2",Bool,queue_size=1)
 ###Bool message
 mTrue=Bool();mTrue.data=True
 mFalse=Bool();mFalse.data=False
