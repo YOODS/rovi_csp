@@ -17,9 +17,11 @@ config:
     launch_vga:
       label: "VGAカメラ"
       package: rovi
+      file: ycam3vga.launch
       auto: 1
     launch_sxga:
       label: "SXGAカメラ"
+      file: ycam3sxga.launch
       package: rovi
     launch_rsock:
       label: "ロボット"

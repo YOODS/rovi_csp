@@ -30,7 +30,7 @@ Config={
   "axis_frame_ids":["bucket_post0","bucket_post1"]
 }
 
-do1cema=0
+do1busy=False
 
 def np2F(d):  #numpy to Floats
   f=Floats()
@@ -114,27 +114,31 @@ def pScanX(pc,h,wid,dep,thres):
 def pCropY(pc,y0,yh):
   cy=RT[1,3]/2
 
+def ret_ps(p,v,m):
+  global do1busy
+  report={'probables':p,'volume':v,'margin':m}
+  msg=String()
+  msg.data=str(report)
+  pub_str.publish(msg)
+  if do1busy:
+    do1busy=False
+    rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done1.publish(mTrue),oneshot=True)
+
 def cb_ps(msg):
-  global Scene,SceneP,do1cema
+  global Scene,SceneP,do1busy
   Scene=np.reshape(msg.data,(-1,3))
   SceneP=Scene
   pub_ps.publish(np2F(Scene))
+  if len(Scene)<100:
+    ret_ps(0,0,0)
+    return
   try:
     Param.update(rospy.get_param("/prepro"))
   except Exception as e:
     print("get_param exception:",e.args)
   print("prepro::cb_ps",Param)
-  report={}
   if Param["enable"]==0:
-    report['probables']=1
-    report['volume']=0
-    report['margin']=100
-    msg=String()
-    msg.data=str(report)
-    pub_str.publish(msg)
-    if do1cema>0:
-      do1cema=0
-      rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done1.publish(mTrue),oneshot=True)
+    ret_ps(1,0,100)
     return
   P0=getRT("world",Config["axis_frame_ids"][0])[0:3,3].ravel()
   Px=getRT("world",Config["axis_frame_ids"][1])[0:3,3].ravel()
@@ -148,9 +152,10 @@ def cb_ps(msg):
   lx=np.linalg.norm(Px-P0)
   pbn,uscn0,cnt0,cx0=pScanX(uscn,lx,Param["box0_width"],Param["box0_depth"],Param["box0_points"])  #Scan PC peak of F-end of workpiece
   print("prepro",pbn,len(uscn0),cnt0,cx0)
+  report={}
   report["probables"]=pbn
+  report["volume"]=cnt0
   if pbn>0: #probable point clusters
-    report["volume"]=cnt0
     Pc=np.ravel(uTc[0:3,3])
     margin=cx0 if cx0<xlen/2 else xlen-cx0
     report["margin"]=margin
@@ -160,17 +165,26 @@ def cb_ps(msg):
     print("Scene prepro",len(SceneP))
   else:
     SceneP=None
-  if do1cema>0:
-    do1cema=0
+  if do1busy:
+    do1busy=False
     rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done1.publish(mTrue),oneshot=True)
   msg=String()
   msg.data=str(report)
   pub_str.publish(msg)
 
+def cb_do1free(msg):
+  global do1busy
+  if do1busy:
+    msg=np2F(np.array([]).reshape((-1,3)))
+    cb_ps(msg)
+    do1busy=False
 
 def cb_do1(msg):
-  global do1cema
-  do1cema=do1cema+1
+  global do1busy
+  print('prepro do1',do1busy)
+  if not do1busy:
+    do1busy=True
+    rospy.Timer(rospy.Duration(5),cb_do1free,oneshot=True)
 
 def cb_do2(msg):
   global SceneP

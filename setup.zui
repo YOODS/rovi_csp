@@ -33,7 +33,7 @@
 "class":"Number", "name":"/config_tf/bucket_post1/transform/translation/x","label":"ポスト1 X:"
 "class":"Number", "name":"/config_tf/bucket_post1/transform/translation/y","label":"Y:"
 "class":"Number", "name":"/config_tf/bucket_post1/transform/translation/z","label":"Z:"
-"class":"Pub",    "name":"/update/config_tf","label":"反映"
+"class":"Pub",    "name":"/reload/config_tf","label":"反映"
 "class":"Title",  "label":"2-4.点分布チェック"
 "class":"Number", "name":"/prepro/enable","label":"チェック有効"
 "class":"Number", "name":"/prepro/box0_width","label":"探索幅"
