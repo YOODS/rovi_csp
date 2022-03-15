@@ -1,6 +1,9 @@
 <launch>
   <!--   PointColuds to show on RViz   -->
+  <arg name="ws" default="$(find rovi_csp)" />
   <arg name="rviz_conf" default="$(find rovi_csp)/main.rviz" />
+  <rosparam command="load" file="$(find rovi_csp)/config.yaml" />
+  <rosparam command="load" file="$(arg ws)/recipe/param.yaml" />
   <node pkg="rviz" type="rviz" name="" args="-d $(arg rviz_conf)" />
   <node pkg="rovi" type="floats2pc" name="" args="camera/capture0">
     <remap from="floats" to="/scene/surface/floats" />

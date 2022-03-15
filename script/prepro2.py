@@ -15,6 +15,8 @@ from std_msgs.msg import Bool
 from std_msgs.msg import String
 from geometry_msgs.msg import Transform
 from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseArray
 from rovi_utils import tflib
 
 Param={
@@ -24,18 +26,27 @@ Param={
   "box0_points":500,
   "box0_low":100,
   "box0_crop":200,
-  "post_margin":100
+  "bucket_width":870
 }
 Config={
-  "axis_frame_ids":["bucket_post0","bucket_post1"]
+#  "axis_frame_ids":["bucket_post0","bucket_post1"]
+  "axis_frame_ids":["prepro"]
 }
 
 do1busy=False
+P0=np.array([]).reshape((-1,3))
+Scene=P0
+SceneP=None
+SceneN=0
+ParamN=''
 
 def np2F(d):  #numpy to Floats
   f=Floats()
   f.data=np.ravel(d)
   return f
+
+def Pnul():
+  return np.reshape([],(-1,3))
 
 def getRT(base,ref):
   try:
@@ -64,137 +75,167 @@ def pFrame(P0,Px):
   tfs.child_frame_id="prepro"
   tfs.transform=tflib.fromRT(RT)
   broadcaster.sendTransform([tfs])
-  return RT,xlen
+  return RT
 
 def pTr(RT,pc):
   return np.dot(RT[:3],np.vstack((pc.T,np.ones((1,len(pc)))))).T
 
-def pCollectPeakX(pc,hx,dx,hz,dz):
+def pCollectPeakX(pc,dx,dz):
   pitch = 5
   cnt=[]
-  cod=[]
+  codx=[]
+  codz=[]
   cpre=0
   inc=True
-  for x in np.arange(0,hx,pitch):
+  hx0=np.min(pc.T[0])
+  hx1=np.max(pc.T[0])
+  hz0=np.min(pc.T[2])
+  hz1=np.max(pc.T[2])
+  for x in np.arange(hx0,hx1,pitch):
     pc1=pc[ np.ravel(np.abs(pc[:,0]-x)<dx) ]
-    cmax=0
-    for z in np.arange(0,hz,pitch):
+    cmaxn=0
+    cmaxz=0
+    for z in np.arange(hz0,hz1,pitch):
       n=len(pc1[ np.ravel(np.abs(pc1[:,2]-z)<dz) ])
-      if cmax<n: cmax=n
+      if cmaxn<n:
+        cmaxn=n
+        cmaxz=z
     if inc:
-      if cpre>cmax:
+      if cpre>cmaxn:
         if cpre>Param["box0_low"]:
           cnt.append(cpre)
-          cod.append(x-pitch)
+          codx.append(x-pitch)
+          codz.append(cmaxz)
         inc=False
     else:
-      if cpre<cmax: inc=True
-    cpre=cmax
-  return cnt,cod
+      if cpre<cmaxn: inc=True
+    cpre=cmaxn
+  return cnt,codx,codz
 
 def pScanX(pc,h,wid,dep,thres):
   pc=pc[ np.ravel(pc[:,1]<0) ] # Y<0
-  cnt,coord=pCollectPeakX(pc,h,wid/2,1000,dep/2)  #Collects PC peak
-  print("scanX",cnt,coord)
-  if len(coord)>0:
+  if len(pc)<thres: return 0,pc,0,0,0
+
+  cnt,coordx,coordz=pCollectPeakX(pc,wid/2,dep/2)  #Collects PC peak
+  print("scanX",cnt,coordx,coordz)
+  peaks=PoseArray()
+  peaks.header.frame_id='prepro'
+  if len(coordx)>0:
     cnt=np.array(cnt)
-    coord=np.array(coord)
+    coordx=np.array(coordx)
+    coordz=np.array(coordz)
     sel=cnt>thres
     if sum(sel)>0:
       cnt=cnt[sel]
-      coord=coord[sel]
-      n=np.argmin(np.abs(coord-h/2))
-      return sum(sel),pc,cnt[n],coord[n]
+      coordx=coordx[sel]
+      n=np.argmin(np.abs(coordx-h/2))
+      for x,z in zip(coordx,coordz):
+         p=Pose()
+         p.position.x=x
+         p.position.y=0
+         p.position.z=z
+         p.orientation.x=0
+         p.orientation.y=0
+         p.orientation.z=-0.707
+         p.orientation.w=0.707
+         peaks.poses.append(p)
+      pub_peaks.publish(peaks)
+      return sum(sel),pc,cnt[n],coordx[n],coordz[n]
     else:
       n=np.argmax(cnt)
-      return 0,pc,cnt[n],coord[n]
+      pub_peaks.publish(peaks)
+      return 0,pc,cnt[n],coordx[n],coordz[n]
   else:
-    return 0,pc,0,0
+    pub_peaks.publish(peaks)
+    return 0,pc,0,0,0
 
 def pCropY(pc,y0,yh):
   cy=RT[1,3]/2
 
-def ret_ps(p,v,m):
-  global do1busy
-  report={'probables':p,'volume':v,'margin':m}
-  msg=String()
-  msg.data=str(report)
-  pub_str.publish(msg)
+def done1(report):
+  global Scene,SceneP,do1busy
+  if len(report)>0:
+    msg=String()
+    msg.data=str(report)
+    pub_str.publish(msg)
   if do1busy:
     do1busy=False
     rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done1.publish(mTrue),oneshot=True)
 
 def cb_ps(msg):
-  global Scene,SceneP,do1busy
-  Scene=np.reshape(msg.data,(-1,3))
-  SceneP=Scene
-  pub_ps.publish(np2F(Scene))
-  if len(Scene)<100:
-    ret_ps(0,0,0)
-    return
+  global Scene,SceneP,SceneN,ParamN,do1busy
   try:
     Param.update(rospy.get_param("/prepro"))
   except Exception as e:
     print("get_param exception:",e.args)
-  print("prepro::cb_ps",Param)
-  if Param["enable"]==0:
-    ret_ps(1,0,100)
+  Scene=np.reshape(msg.data,(-1,3))
+  if SceneN==len(Scene) and ParamN==str(Param):
+    print("prepro::cb_ps unchaged")
+    done1({})
     return
-  P0=getRT("world",Config["axis_frame_ids"][0])[0:3,3].ravel()
-  Px=getRT("world",Config["axis_frame_ids"][1])[0:3,3].ravel()
-  wTu,xlen=pFrame(P0,Px)
-  print("Bucket",wTu)
-  wTc=getRT("world","camera/capture0")
-  uTc=np.linalg.inv(wTu).dot(wTc)
+  SceneN=len(Scene)
+  ParamN=str(Param)
+  if SceneN<100:
+    done1({'probables':0,'prob_v':0,'prob_m':0})
+    SceneP=Scene
+    pub_ps.publish(np2F(SceneP))
+    return
+  if Param["enable"]==0:
+    done1({'probables':1,'prob_v':0,'prob_m':100})
+    SceneP=Scene
+    pub_ps.publish(np2F(SceneP))
+    return
+  pub_ps.publish(np2F(Scene))
+  if len(Config["axis_frame_ids"])>1:
+    P0=getRT("world",Config["axis_frame_ids"][0])[0:3,3].ravel()
+    Px=getRT("world",Config["axis_frame_ids"][1])[0:3,3].ravel()
+    wTu=pFrame(P0,Px)
+    wTc=getRT("world","camera/capture0")
+    uTc=np.linalg.inv(wTu).dot(wTc)
+    xlen=np.linalg.norm(Px-P0)
+  else:
+    uTc=getRT(Config["axis_frame_ids"][0],"camera/capture0")
+    xlen=Param["bucket_width"]
   cTu=np.linalg.inv(uTc)
-  print("Scene",len(Scene))
   uscn=pTr(uTc,Scene)
-  lx=np.linalg.norm(Px-P0)
-  pbn,uscn0,cnt0,cx0=pScanX(uscn,lx,Param["box0_width"],Param["box0_depth"],Param["box0_points"])  #Scan PC peak of F-end of workpiece
-  print("prepro",pbn,len(uscn0),cnt0,cx0)
+  pbn,uscn0,cnt0,cx0,cz0=pScanX(uscn,xlen,Param["box0_width"],Param["box0_depth"],Param["box0_points"])  #Scan PC peak of F-end of workpiece
   report={}
   report["probables"]=pbn
-  report["volume"]=cnt0
+  report["prob_v"]=cnt0
   if pbn>0: #probable point clusters
-    Pc=np.ravel(uTc[0:3,3])
+    report["prob_x"]=cx0-uTc[0,3]
+    report["prob_z"]=uTc[2,3]-cz0
     margin=cx0 if cx0<xlen/2 else xlen-cx0
-    report["margin"]=margin
-    print("margin",report["margin"])
+    report["prob_m"]=margin
     uscn1=uscn[ np.ravel(np.abs(uscn[:,0]-cx0)<Param["box0_crop"]/2) ]
     SceneP=pTr(cTu,uscn1)
-    print("Scene prepro",len(SceneP))
+    print("cb_ps done",len(SceneP),do1busy)
   else:
-    SceneP=None
-  if do1busy:
-    do1busy=False
-    rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done1.publish(mTrue),oneshot=True)
-  msg=String()
-  msg.data=str(report)
-  pub_str.publish(msg)
+    print("cb_ps done None")
+    SceneP=Pnul()
+  done1(report)
 
 def cb_do1free(msg):
   global do1busy
-  if do1busy:
-    msg=np2F(np.array([]).reshape((-1,3)))
-    cb_ps(msg)
-    do1busy=False
+  do1busy=False
 
 def cb_do1(msg):
   global do1busy
-  print('prepro do1',do1busy)
   if not do1busy:
     do1busy=True
     rospy.Timer(rospy.Duration(5),cb_do1free,oneshot=True)
 
 def cb_do2(msg):
   global SceneP
-  if Param["enable"]==0:
-    pub_ps.publish(np2F(Scene))
-    rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done2.publish(mTrue),oneshot=True)
-    return
-  if SceneP is not None:
+  if Param["enable"]:
     pub_ps.publish(np2F(SceneP))
   rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done2.publish(mTrue),oneshot=True)
+
+def cb_save(msg):
+  global Scene
+  pc=o3d.geometry.PointCloud()
+  pc.points=o3d.utility.Vector3dVector(Scene)
+  o3d.io.write_point_cloud("/tmp/prepro.ply",pc)
 
 ########################################################
 rospy.init_node("prepro",anonymous=True)
@@ -208,10 +249,12 @@ except Exception as e:
 rospy.Subscriber("~in/floats",numpy_msg(Floats),cb_ps)
 rospy.Subscriber("~do1",Bool,cb_do1)  #search cluster
 rospy.Subscriber("~do2",Bool,cb_do2)  #crop
+rospy.Subscriber("/prepro/save",Bool,cb_save)
 pub_ps=rospy.Publisher("~out/floats",numpy_msg(Floats),queue_size=1)
 pub_str=rospy.Publisher("/report",String,queue_size=1)
 pub_done1=rospy.Publisher("~done1",Bool,queue_size=1)
 pub_done2=rospy.Publisher("~done2",Bool,queue_size=1)
+pub_peaks=rospy.Publisher("/prepro/peaks",PoseArray,queue_size=1)
 ###Bool message
 mTrue=Bool();mTrue.data=True
 mFalse=Bool();mFalse.data=False
