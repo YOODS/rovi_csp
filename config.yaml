@@ -1,34 +1,22 @@
 config_tf:
-  bucket_post0:
-    parent_frame_id: world
+  prepro:
+    parent_frame_id: base
     transform:
-      rotation:
-        w: 1
-        x: 0
-        y: 0
-        z: 0
       translation:
-        x: 220
-        y: -480
-        z: 800
-  bucket_post1:
-    parent_frame_id: world
-    transform:
-      rotation:
-        w: 1
-        x: 0
-        y: 0
-        z: 0
-      translation:
-        x: 220
+        x: 600
         y: 420
-        z: 800
-
+        z: 500
+      rotation:
+        x: 0
+        y: 0
+        z: -0.707
+        w: 0.707
 config:
   rsocket:
-    target_frame_id: camera/capture0/solve0/revolve
-    x1keys: ['probables','margin']
+    update_frame_id: prepro
+#    target_frame_id: camera/capture0/solve0/revolve
+    x1keys: ['probables','prob_m','prob_x','prob_z']
   report:
-    keys: ["__recipe__", "pcount","probables","volume","margin","fitness","rmse","azimuth","rotation","Gx","Gy","Gz","Vx","Vy","Vz","tcap","tfeat","tmatch"]
-    labels: ["レシピ", "点数","候補","体積","すきま","一致度","平均誤差","傾き[deg]","回転[deg]","X移動[mm]","Y移動[mm]","Z移動[mm]","X回転[deg]","Y回転[deg]","Z回転[deg]","撮影[s]","特徴点[s]","マッチ[s]"]
+    keys: ["__recipe__", "pcount","probables","prob_v","prob_m","prob_x","prob_z","fitness","rmse","azimuth","rotation","Gx","Gy","Gz","Vx","Vy","Vz","tcap","tfeat","tmatch"]
+    labels: ["レシピ", "点数","候補","体積","すきま","概略X","概略Z","一致度","平均誤差","傾き[deg]","回転[deg]","X移動[mm]","Y移動[mm]","Z移動[mm]","X回転[deg]","Y回転[deg]","Z回転[deg]","撮影[s]","特徴点[s]","マッチ[s]"]
 
