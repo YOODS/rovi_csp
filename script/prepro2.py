@@ -176,12 +176,12 @@ def cb_ps(msg):
   SceneN=len(Scene)
   ParamN=str(Param)
   if SceneN<100:
-    done1({'probables':0,'prob_v':0,'prob_m':0})
+    done1({'probables':0,'prob_v':0,'prob_m':0,'prob_x':0,'prob_z':1000})
     SceneP=Scene
     pub_ps.publish(np2F(SceneP))
     return
   if Param["enable"]==0:
-    done1({'probables':1,'prob_v':0,'prob_m':100})
+    done1({'probables':1,'prob_v':0,'prob_m':100,'prob_x':0,'prob_z':1000})
     SceneP=Scene
     pub_ps.publish(np2F(SceneP))
     return
