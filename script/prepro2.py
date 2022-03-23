@@ -6,9 +6,7 @@ import rospy
 import tf
 import tf2_ros
 import open3d as o3d
-import os
-import sys
-import subprocess
+import time
 from rovi.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from std_msgs.msg import Bool
@@ -33,7 +31,8 @@ Config={
   "axis_frame_ids":["prepro"]
 }
 
-do1busy=False
+Tm_do1=0
+Tm_done1=0
 P0=np.array([]).reshape((-1,3))
 Scene=P0
 SceneP=None
@@ -153,21 +152,25 @@ def pCropY(pc,y0,yh):
   cy=RT[1,3]/2
 
 def done1(report):
-  global Scene,SceneP,do1busy
+  global Scene,SceneP,Tm_done1,Tm_do1
   if len(report)>0:
     msg=String()
     msg.data=str(report)
     pub_str.publish(msg)
-  if do1busy:
-    do1busy=False
+  t=time.time()
+  if t-Tm_do1<5:
+    Tm_do1=0
     rospy.Timer(rospy.Duration(0.1),lambda ev: pub_done1.publish(mTrue),oneshot=True)
+  else:
+    Tm_done1=t
 
 def cb_ps(msg):
-  global Scene,SceneP,SceneN,ParamN,do1busy
+  global Scene,SceneP,SceneN,ParamN
   try:
     Param.update(rospy.get_param("/prepro"))
   except Exception as e:
     print("get_param exception:",e.args)
+  print('prepro cb_ps',time.time()-Tm_do1)
   Scene=np.reshape(msg.data,(-1,3))
   if SceneN==len(Scene) and ParamN==str(Param):
     print("prepro::cb_ps unchaged")
@@ -209,21 +212,20 @@ def cb_ps(msg):
     report["prob_m"]=margin
     uscn1=uscn[ np.ravel(np.abs(uscn[:,0]-cx0)<Param["box0_crop"]/2) ]
     SceneP=pTr(cTu,uscn1)
-    print("cb_ps done",len(SceneP),do1busy)
+    print("cb_ps done",len(SceneP))
   else:
     print("cb_ps done None")
     SceneP=Pnul()
   done1(report)
 
-def cb_do1free(msg):
-  global do1busy
-  do1busy=False
-
 def cb_do1(msg):
-  global do1busy
-  if not do1busy:
-    do1busy=True
-    rospy.Timer(rospy.Duration(5),cb_do1free,oneshot=True)
+  global Tm_do1
+  t=time.time()
+  print('prepro do1',t-Tm_done1)
+  if t-Tm_done1<1:
+    pub_done1.publish(mTrue)
+  else:
+    Tm_do1=t
 
 def cb_do2(msg):
   global SceneP
@@ -239,7 +241,6 @@ def cb_save(msg):
 
 ########################################################
 rospy.init_node("prepro",anonymous=True)
-thispath=subprocess.getoutput("rospack find rovi_sim")
 ###Load params
 try:
   Config.update(rospy.get_param("/config/prepro"))
