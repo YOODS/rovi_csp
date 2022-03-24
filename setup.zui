@@ -15,6 +15,7 @@
 "class":"Number", "name":"/picker/rotation/min","label":"回転限界(-)"
 
 "class":"Title",  "label":"2-1.マスター作成","page":"break"
+"class":"Number", "name":"/cropper/mesh","label":"メッシュサイズ"
 "class":"Number", "name":"/cropper/ladW","label":"すくい点数"
 "class":"Pub",    "name":"/request/model_save","label":"登録","confirm":"登録しますか？"
 "class":"Popup",  "name":"/response/model_save","label":"マスター登録"
@@ -58,6 +59,7 @@
 "class":"Number", "name":"/searcher/feature_radius","label":"特徴点決定半径"
 "class":"Number", "name":"/searcher/distance_threshold","label":"対応特徴点最大距離"
 "class":"Number", "name":"/searcher/icp_threshold","label":"ICP有効点距離"
+"class":"Pub",    "name":"/mesh_aid/preset","label":"推奨値を設定"
 
 "class":"Title",  "label":"4-1.ネットワーク設定","page":"break"
 "class":"Number", "name":"/config/rsocket/port","label":"ポート"

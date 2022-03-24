@@ -58,4 +58,10 @@
     <remap from="~do" to="/revolver/do" />
     <remap from="~done" to="/response/solve" />
   </node>
+  <param name="/config/mesh_aid/mesh_ref" type="str" value="/cropper/mesh" />
+  <node pkg="rovi_utils" type="mesh_aid.py" name="mesh_aid" output="screen">
+    <remap from="~config" to="/config/mesh_aid" />
+    <remap from="~preset" to="/mesh_aid/preset" />
+    <remap from="~solver_param" to="/searcher" />
+  </node>
 </launch>
